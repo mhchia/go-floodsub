@@ -75,6 +75,9 @@ type PubSub struct {
 	// validateThrottle limits the number of active validation goroutines
 	validateThrottle chan struct{}
 
+	// eval thunk in event loop
+	eval chan func()
+
 	peers        map[peer.ID]chan *RPC
 	seenMessages *timecache.TimeCache
 
@@ -131,6 +134,7 @@ func NewPubSub(ctx context.Context, h host.Host, rt PubSubRouter, opts ...Option
 		addVal:           make(chan *addValReq),
 		rmVal:            make(chan *rmValReq),
 		validateThrottle: make(chan struct{}, defaultValidateThrottle),
+		eval:             make(chan func()),
 		myTopics:         make(map[string]map[*Subscription]struct{}),
 		topics:           make(map[string]map[peer.ID]struct{}),
 		peers:            make(map[peer.ID]chan *RPC),
@@ -248,6 +252,9 @@ func (p *PubSub) processLoop(ctx context.Context) {
 
 		case req := <-p.rmVal:
 			p.rmValidator(req)
+
+		case thunk := <-p.eval:
+			thunk()
 
 		case <-ctx.Done():
 			log.Info("pubsub processloop shutting down")
