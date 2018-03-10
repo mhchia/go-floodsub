@@ -593,10 +593,7 @@ func (p *PubSub) GetTopics() []string {
 
 // Publish publishes data under the given topic
 func (p *PubSub) Publish(topic string, data []byte) error {
-	seqno := make([]byte, 8)
-	counter := atomic.AddUint64(&p.counter, 1)
-	binary.BigEndian.PutUint64(seqno, counter)
-
+	seqno := p.nextSeqno()
 	p.publish <- &Message{
 		&pb.Message{
 			Data:     data,
@@ -606,6 +603,13 @@ func (p *PubSub) Publish(topic string, data []byte) error {
 		},
 	}
 	return nil
+}
+
+func (p *PubSub) nextSeqno() []byte {
+	seqno := make([]byte, 8)
+	counter := atomic.AddUint64(&p.counter, 1)
+	binary.BigEndian.PutUint64(seqno, counter)
+	return seqno
 }
 
 type listPeerReq struct {
