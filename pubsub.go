@@ -202,7 +202,8 @@ func (p *PubSub) processLoop(ctx context.Context) {
 				close(ch)
 			}
 
-			messages := make(chan *RPC, 32)
+			// TODO: the size of `messages` affects the packet loss from other peers
+			messages := make(chan *RPC, 10000)
 			go p.handleSendingMessages(ctx, s, messages)
 			messages <- p.getHelloPacket()
 
@@ -254,6 +255,7 @@ func (p *PubSub) processLoop(ctx context.Context) {
 			p.handleIncomingRPC(rpc)
 
 		case msg := <-p.publish:
+			// TODO: called when publishing contents
 			vals := p.getValidators(msg)
 			p.pushMsg(vals, p.host.ID(), msg)
 
@@ -318,7 +320,8 @@ func (p *PubSub) handleAddSubscription(req *addSubReq) {
 		subs = p.myTopics[sub.topic]
 	}
 
-	sub.ch = make(chan *Message, 32)
+	// TODO: the size of sub.ch affects "subscriber too slow pubsub.go:478"
+	sub.ch = make(chan *Message, 10000)
 	sub.cancelCh = p.cancelCh
 
 	p.myTopics[sub.topic][sub] = struct{}{}
