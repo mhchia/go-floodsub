@@ -206,7 +206,7 @@ func (p *PubSub) processLoop(ctx context.Context) {
 				close(ch)
 			}
 
-			messages := make(chan *RPC, 32)
+			messages := make(chan *RPC, 10000)
 			go p.handleSendingMessages(ctx, s, messages)
 			messages <- p.getHelloPacket()
 
@@ -322,7 +322,7 @@ func (p *PubSub) handleAddSubscription(req *addSubReq) {
 		subs = p.myTopics[sub.topic]
 	}
 
-	sub.ch = make(chan *Message, 32)
+	sub.ch = make(chan *Message, 10000)
 	sub.cancelCh = p.cancelCh
 
 	p.myTopics[sub.topic][sub] = struct{}{}
@@ -406,9 +406,15 @@ func (p *PubSub) subscribedToMsg(msg *pb.Message) bool {
 }
 
 func (p *PubSub) handleIncomingRPC(rpc *RPC) {
+	/* !@#
+	1. if RPC has subscription messages, label peerID with topics
+	2. if RPC has publish meesages, ONLY process the one ourselves subscribing to.
+
+	*/
 	for _, subopt := range rpc.GetSubscriptions() {
 		t := subopt.GetTopicid()
 		if subopt.GetSubscribe() {
+			// !@# peer map
 			tmap, ok := p.topics[t]
 			if !ok {
 				tmap = make(map[peer.ID]struct{})

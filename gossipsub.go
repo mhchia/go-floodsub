@@ -91,6 +91,7 @@ func (gs *GossipSubRouter) RemovePeer(p peer.ID) {
 }
 
 func (gs *GossipSubRouter) HandleRPC(rpc *RPC) {
+	// !@# here we only handle ControlMessage
 	ctl := rpc.GetControl()
 	if ctl == nil {
 		return
@@ -105,6 +106,7 @@ func (gs *GossipSubRouter) HandleRPC(rpc *RPC) {
 		return
 	}
 
+	// !@# msgs, ihave, iwant, graft, prune
 	out := rpcWithControl(ihave, nil, iwant, nil, prune)
 	gs.sendRPC(rpc.from, out)
 }
@@ -197,6 +199,7 @@ func (gs *GossipSubRouter) handlePrune(p peer.ID, ctl *pb.ControlMessage) {
 }
 
 func (gs *GossipSubRouter) Publish(from peer.ID, msg *pb.Message) {
+	// !@#
 	gs.mcache.Put(msg)
 
 	tosend := make(map[peer.ID]struct{})
@@ -376,6 +379,7 @@ func (gs *GossipSubRouter) heartbeat() {
 			plst := peerMapToList(peers)
 			shufflePeers(plst)
 
+			// !@# prune peers randomly
 			for _, p := range plst[:idontneed] {
 				delete(peers, p)
 				topics := toprune[p]
@@ -383,6 +387,7 @@ func (gs *GossipSubRouter) heartbeat() {
 			}
 		}
 
+		// !@# only gossip, not entire messages
 		gs.emitGossip(topic, peers)
 	}
 
@@ -568,6 +573,7 @@ func (gs *GossipSubRouter) piggybackControl(p peer.ID, out *RPC, ctl *pb.Control
 }
 
 func (gs *GossipSubRouter) getPeers(topic string, count int, filter func(peer.ID) bool) []peer.ID {
+	// find peers from PubSub
 	tmap, ok := gs.p.topics[topic]
 	if !ok {
 		return nil
@@ -575,6 +581,7 @@ func (gs *GossipSubRouter) getPeers(topic string, count int, filter func(peer.ID
 
 	peers := make([]peer.ID, 0, len(tmap))
 	for p := range tmap {
+		// !@# select gossipsub peers
 		if gs.peers[p] == GossipSubID && filter(p) {
 			peers = append(peers, p)
 		}
