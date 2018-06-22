@@ -206,7 +206,7 @@ func (p *PubSub) processLoop(ctx context.Context) {
 				close(ch)
 			}
 
-			messages := make(chan *RPC, 10000)
+			messages := make(chan *RPC, 1000)
 			go p.handleSendingMessages(ctx, s, messages)
 			messages <- p.getHelloPacket()
 
@@ -322,7 +322,7 @@ func (p *PubSub) handleAddSubscription(req *addSubReq) {
 		subs = p.myTopics[sub.topic]
 	}
 
-	sub.ch = make(chan *Message, 10000)
+	sub.ch = make(chan *Message, 1000)
 	sub.cancelCh = p.cancelCh
 
 	p.myTopics[sub.topic][sub] = struct{}{}
