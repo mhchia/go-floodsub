@@ -748,11 +748,13 @@ func TestSubReporting(t *testing.T) {
 	assertHasTopics(t, psub, "baz", "fish")
 }
 
+// !@# subscriptions are broadcast to peers, but the peer will not relay subscription messages
+// to its peers. That's why we need global channels(topics)
 func TestPeerTopicReporting(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	hosts := getNetHosts(t, ctx, 4)
+	hosts := getNetHosts(t, ctx, 5)
 	psubs := getPubsubs(ctx, hosts)
 
 	connect(t, hosts[0], hosts[1])
@@ -790,7 +792,13 @@ func TestPeerTopicReporting(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	time.Sleep(time.Millisecond * 10)
+	connect(t, hosts[4], hosts[1])
+	_, err = psubs[4].Subscribe("topic4")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	time.Sleep(time.Millisecond * 1000)
 
 	peers := psubs[0].ListPeers("ipfs")
 	assertPeerList(t, peers, hosts[2].ID(), hosts[3].ID())
@@ -802,6 +810,10 @@ func TestPeerTopicReporting(t *testing.T) {
 	assertPeerList(t, peers, hosts[1].ID(), hosts[3].ID())
 
 	peers = psubs[0].ListPeers("bar")
+	assertPeerList(t, peers, hosts[1].ID())
+
+	peers = psubs[4].ListPeers("foo")
+	fmt.Print(peers)
 	assertPeerList(t, peers, hosts[1].ID())
 }
 
