@@ -206,7 +206,7 @@ func (p *PubSub) processLoop(ctx context.Context) {
 				close(ch)
 			}
 
-			messages := make(chan *RPC, 1000)
+			messages := make(chan *RPC, 32)
 			go p.handleSendingMessages(ctx, s, messages)
 			messages <- p.getHelloPacket()
 
@@ -322,7 +322,7 @@ func (p *PubSub) handleAddSubscription(req *addSubReq) {
 		subs = p.myTopics[sub.topic]
 	}
 
-	sub.ch = make(chan *Message, 1000)
+	sub.ch = make(chan *Message, 32)
 	sub.cancelCh = p.cancelCh
 
 	p.myTopics[sub.topic][sub] = struct{}{}
@@ -332,6 +332,7 @@ func (p *PubSub) handleAddSubscription(req *addSubReq) {
 
 // announce announces whether or not this node is interested in a given topic
 // Only called from processLoop.
+// !@# broadcast the node's subscription
 func (p *PubSub) announce(topic string, sub bool) {
 	subopt := &pb.RPC_SubOpts{
 		Topicid:   &topic,
@@ -339,6 +340,7 @@ func (p *PubSub) announce(topic string, sub bool) {
 	}
 
 	out := rpcWithSubs(subopt)
+	// !@# announcement are broadcast to all the peers
 	for pid, peer := range p.peers {
 		select {
 		case peer <- out:
@@ -420,7 +422,7 @@ func (p *PubSub) handleIncomingRPC(rpc *RPC) {
 				tmap = make(map[peer.ID]struct{})
 				p.topics[t] = tmap
 			}
-
+			// !@# when receiving subscription, add the peer to the topic-peer map
 			tmap[rpc.from] = struct{}{}
 		} else {
 			tmap, ok := p.topics[t]
